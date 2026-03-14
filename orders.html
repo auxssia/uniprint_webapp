@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Service | Orders</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <main class="app-container">
+        
+        <!-- Top Nav -->
+        <nav class="top-nav">
+            <a href="index.html" class="btn-back" aria-label="Go Back">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                </svg>
+            </a>
+            <h2 style="font-size: 1.25rem;">My Orders</h2>
+        </nav>
+
+        <div class="order-list">
+            
+            <!-- Dummy Order 1 -->
+            <div class="order-item">
+                <div class="order-info">
+                    <h3>CS101_Syllabus.pdf</h3>
+                    <div class="order-meta">1 Copy • B&W • Single-sided</div>
+                </div>
+                <div class="status-badge status-ready">Ready</div>
+            </div>
+
+            <!-- Dummy Order 2 -->
+            <div class="order-item">
+                <div class="order-info">
+                    <h3>Project_Report_Final.pdf</h3>
+                    <div class="order-meta">3 Copies • Color • Double-sided</div>
+                </div>
+                <div class="status-badge status-printing">Printing</div>
+            </div>
+
+            <!-- Dummy Order 3 -->
+            <div class="order-item">
+                <div class="order-info">
+                    <h3>Lecture_Slides_Week4.pdf</h3>
+                    <div class="order-meta">1 Copy • B&W • Double-sided</div>
+                </div>
+                <div class="status-badge status-pending">Pending</div>
+            </div>
+
+        </div>
+
+        <div style="margin-top: 2rem; text-align: center;">
+            <a href="upload.html" class="btn btn-outline" style="border-style: dashed;">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" style="margin-right: 8px;">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                New Request
+            </a>
+        </div>
+    </main>
+
+</body>
+</html>
