@@ -178,4 +178,112 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMsg.className = 'status-msg';
         }
     }
+
+    // --- ORDERS PAGE LOGIC ---
+    const ordersListEl = document.getElementById('ordersList');
+    
+    if (ordersListEl) {
+        const loadingEl = document.getElementById('ordersLoading');
+        const emptyEl = document.getElementById('ordersEmpty');
+
+        // Initial fetch
+        fetchOrders();
+
+        // Set up Realtime Subscription
+        if (client) {
+            client
+                .channel("orders_realtime")
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "*",
+                        schema: "public",
+                        table: "orders"
+                    },
+                    (payload) => {
+                        console.log("Realtime update received:", payload);
+                        fetchOrders();
+                    }
+                )
+                .subscribe();
+        }
+
+        async function fetchOrders() {
+            if (!client) {
+                // Handle fallback if running without Supabase
+                loadingEl.style.display = 'none';
+                emptyEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const { data, error } = await client
+                    .from("orders")
+                    .select("*")
+                    .order("created_at", { ascending: false });
+
+                if (error) throw error;
+
+                // Hide Loading State
+                loadingEl.style.display = 'none';
+
+                if (!data || data.length === 0) {
+                    emptyEl.style.display = 'block';
+                    ordersListEl.style.display = 'none';
+                    return;
+                }
+
+                // Render List
+                emptyEl.style.display = 'none';
+                ordersListEl.style.display = 'flex';
+                ordersListEl.innerHTML = ''; // Clear previous
+
+                data.forEach(order => {
+                    const card = createOrderCard(order);
+                    ordersListEl.appendChild(card);
+                });
+
+            } catch (err) {
+                console.error("Failed to fetch orders:", err);
+                loadingEl.innerHTML = `<p style="color: var(--error-color);">Failed to load orders.</p>`;
+            }
+        }
+
+        function createOrderCard(order) {
+            // Determine styling based on status
+            const statusMap = {
+                'pending': { label: 'Pending', cssClass: 'status-pending' },
+                'printing': { label: 'Printing', cssClass: 'status-printing' },
+                'ready': { label: 'Ready', cssClass: 'status-ready' }
+            };
+
+            const statusObj = statusMap[order.status] || statusMap['pending'];
+            const colorOption = order.color === 'color' ? 'Color' : 'Black & White';
+            const sidedOption = order.double_sided ? 'Double-sided' : 'Single-sided';
+            const shortId = order.id ? order.id.toString().substring(0, 8) : '0000';
+            
+            // Format time nicely
+            let timeStr = '';
+            if (order.created_at) {
+                const date = new Date(order.created_at);
+                timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }
+
+            const div = document.createElement('div');
+            div.className = 'order-item';
+            div.innerHTML = `
+                <div class="order-info">
+                    <h3 style="margin-bottom: 0.25rem;">Order #${shortId}</h3>
+                    <div class="order-meta">
+                        ${order.copies} ${order.copies > 1 ? 'Copies' : 'Copy'} • ${colorOption} • ${sidedOption}
+                    </div>
+                    <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">
+                        ${timeStr}
+                    </div>
+                </div>
+                <div class="status-badge ${statusObj.cssClass}">${statusObj.label}</div>
+            `;
+            return div;
+        }
+    }
 });
