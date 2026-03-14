@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Print Service</title>
+    <!-- PWA Setup -->
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="css/styles.css">
     
-    <!-- Meta tags for native app feel -->
-    <meta name="theme-color" content="#f8fafc">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-</head>
+                </head>
 <body>
 
     <!-- Main Mobile Application Container -->
@@ -87,5 +88,15 @@
 
     </main>
 
+
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("/service-worker.js")
+                    .then(() => console.log("Service Worker registered"));
+            });
+        }
+    </script>
 </body>
+
 </html>
