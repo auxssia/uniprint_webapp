@@ -127,26 +127,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const fileUrl = urlData.publicUrl;
                 console.log('File successfully uploaded:', fileUrl);
 
-                // 3. Insert new record into "orders" table
-                const { data: insertData, error: insertError } = await client
-                    .from('orders')
-                    .insert([
-                        {
-                            file_url: fileUrl,
-                            copies: copies,
-                            color: colorMode,
-                            double_sided: doubleSided,
-                            status: 'pending',
-                            payment_status: 'paid'
-                        }
-                    ]);
+                // 3. Store the order data for the payment page
+                const orderData = {
+                    file_url: fileUrl,
+                    copies: copies,
+                    color: colorMode,
+                    double_sided: doubleSided,
+                    total_price: document.getElementById('totalPrice').textContent,
+                    file_name: currentFile.name
+                };
+                sessionStorage.setItem('pendingOrder', JSON.stringify(orderData));
 
-                if (insertError) throw insertError;
-
-                console.log('Order successfully placed!');
-
-                // 4. Redirect to success.html
-                window.location.href = 'success.html';
+                // 4. Redirect to payment.html
+                window.location.href = 'payment.html';
 
             } catch (err) {
                 console.error("Upload Error:", err);
@@ -285,5 +278,74 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             return div;
         }
+    }
+
+    // --- PAYMENT PAGE LOGIC ---
+    const paymentSummaryEl = document.getElementById('paymentSummary');
+    
+    if (paymentSummaryEl) {
+        const orderDataRaw = sessionStorage.getItem('pendingOrder');
+        if (!orderDataRaw) {
+            // No order to pay for, redirect home
+            window.location.href = 'index.html';
+            return;
+        }
+
+        const orderData = JSON.parse(orderDataRaw);
+        
+        // Populate specific UI tags
+        document.getElementById('payDocName').textContent = orderData.file_name || 'Document.pdf';
+        document.getElementById('payCopies').textContent = orderData.copies;
+        document.getElementById('payColor').textContent = orderData.color === 'color' ? 'Full Color' : 'Black & White';
+        document.getElementById('payFormat').textContent = orderData.double_sided ? 'Double-sided' : 'Single-sided';
+        document.getElementById('payTotal').textContent = orderData.total_price;
+
+        // Payment Event handling
+        const fakePayBtn = document.getElementById('fakePayBtn');
+        const payBtnText = document.getElementById('payBtnText');
+        const paySpinner = document.getElementById('paySpinner');
+        const paymentStatus = document.getElementById('paymentStatus');
+
+        fakePayBtn.addEventListener('click', async () => {
+            // Spin down state
+            fakePayBtn.disabled = true;
+            payBtnText.textContent = 'Processing...';
+            paySpinner.classList.remove('d-none');
+            
+            // Artificial delay to mimic bank validation
+            await new Promise(r => setTimeout(r, 1200));
+
+            try {
+                // If demo credentials are being used
+                if (supabaseUrl.includes('binnrakbpmpstxcijqsk')) {
+                    const { data, error } = await client
+                        .from('orders')
+                        .insert([{
+                            file_url: orderData.file_url,
+                            copies: orderData.copies,
+                            color: orderData.color,
+                            double_sided: orderData.double_sided,
+                            status: 'pending',
+                            payment_status: 'paid'
+                        }]);
+
+                    if (error) throw error;
+                }
+
+                // Clean session & Forward
+                sessionStorage.removeItem('pendingOrder');
+                window.location.href = 'payment-success.html';
+
+            } catch (err) {
+                console.error("Payment error:", err);
+                paymentStatus.textContent = 'Transaction failed: ' + err.message;
+                paymentStatus.classList.add('show', 'msg-error');
+                
+                // Revert to active click state
+                fakePayBtn.disabled = false;
+                payBtnText.textContent = 'I definitely paid. Trust me.';
+                paySpinner.classList.add('d-none');
+            }
+        });
     }
 });

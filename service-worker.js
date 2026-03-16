@@ -1,10 +1,11 @@
-const CACHE_NAME = 'uniprint-cache-v2';
+const CACHE_NAME = 'uniprint-cache-v3';
 const urlsToCache = [
   '/',
   '/index.html',
   '/upload.html',
   '/orders.html',
-  '/success.html',
+  '/payment.html',
+  '/payment-success.html',
   '/css/styles.css',
   '/js/app.js',
   '/manifest.json'
