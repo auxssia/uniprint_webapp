@@ -46,8 +46,16 @@
         </div>
 
         <!-- Orders container -->
-        <div class="order-list" id="ordersList" style="display: none;">
-            <!-- Dynamic order cards will be injected here -->
+        <div id="ordersContainer" style="display: none; flex-direction: column; gap: 2rem; width: 100%;">
+            <div id="pendingSection" style="display: none;">
+                <h3 style="font-size: 1.15rem; margin-bottom: 1rem; color: var(--text-primary);">Pending Orders</h3>
+                <div class="order-list" id="pendingOrdersList"></div>
+            </div>
+            
+            <div id="readySection" style="display: none;">
+                <h3 style="font-size: 1.15rem; margin-bottom: 1rem; color: var(--text-primary);">Ready Orders</h3>
+                <div class="order-list" id="readyOrdersList"></div>
+            </div>
         </div>
 
         <div style="margin-top: 2rem; text-align: center;">

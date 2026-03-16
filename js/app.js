@@ -173,9 +173,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- ORDERS PAGE LOGIC ---
-    const ordersListEl = document.getElementById('ordersList');
+    const ordersContainerEl = document.getElementById('ordersContainer');
     
-    if (ordersListEl) {
+    if (ordersContainerEl) {
         const loadingEl = document.getElementById('ordersLoading');
         const emptyEl = document.getElementById('ordersEmpty');
 
@@ -222,19 +222,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!data || data.length === 0) {
                     emptyEl.style.display = 'block';
-                    ordersListEl.style.display = 'none';
+                    ordersContainerEl.style.display = 'none';
                     return;
                 }
 
                 // Render List
                 emptyEl.style.display = 'none';
-                ordersListEl.style.display = 'flex';
-                ordersListEl.innerHTML = ''; // Clear previous
+                ordersContainerEl.style.display = 'flex';
+                
+                const pendingOrdersListEl = document.getElementById('pendingOrdersList');
+                const readyOrdersListEl = document.getElementById('readyOrdersList');
+                const pendingSection = document.getElementById('pendingSection');
+                const readySection = document.getElementById('readySection');
+                
+                pendingOrdersListEl.innerHTML = '';
+                readyOrdersListEl.innerHTML = '';
+                
+                let hasPending = false;
+                let hasReady = false;
 
                 data.forEach(order => {
                     const card = createOrderCard(order);
-                    ordersListEl.appendChild(card);
+                    if (order.status === 'ready') {
+                        readyOrdersListEl.appendChild(card);
+                        hasReady = true;
+                    } else {
+                        pendingOrdersListEl.appendChild(card);
+                        hasPending = true;
+                    }
                 });
+                
+                pendingSection.style.display = hasPending ? 'block' : 'none';
+                readySection.style.display = hasReady ? 'block' : 'none';
 
             } catch (err) {
                 console.error("Failed to fetch orders:", err);
@@ -245,15 +264,27 @@ document.addEventListener('DOMContentLoaded', () => {
         function createOrderCard(order) {
             // Determine styling based on status
             const statusMap = {
-                'pending': { label: 'Pending', cssClass: 'status-pending' },
-                'printing': { label: 'Printing', cssClass: 'status-printing' },
-                'ready': { label: 'Ready', cssClass: 'status-ready' }
+                'pending': { label: 'Order Received', cssClass: 'status-pending', step: 1 },
+                'printing': { label: 'Printing in Progress', cssClass: 'status-printing', step: 2 },
+                'ready': { label: 'Ready for Pickup', cssClass: 'status-ready', step: 3 }
             };
 
             const statusObj = statusMap[order.status] || statusMap['pending'];
             const colorOption = order.color === 'color' ? 'Color' : 'Black & White';
             const sidedOption = order.double_sided ? 'Double-sided' : 'Single-sided';
-            const shortId = order.id ? order.id.toString().substring(0, 8) : '0000';
+            
+            // Generate a user friendly ID based on UUID
+            const generateShortId = (uuid) => {
+                if (!uuid) return '0000';
+                let hash = 0;
+                for (let i = 0; i < uuid.length; i++) {
+                    hash = ((hash << 5) - hash) + uuid.charCodeAt(i);
+                    hash |= 0;
+                }
+                return Math.abs(hash).toString().substring(0, 4).padStart(4, '0');
+            };
+            
+            const shortId = generateShortId(order.id);
             
             // Format time nicely
             let timeStr = '';
@@ -262,19 +293,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             }
 
+            const readyMsg = order.status === 'ready' 
+                ? `<div class="ready-message" style="margin-top: 1.25rem; padding: 0.75rem; background: #ecfdf5; color: #065f46; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 500; text-align: center; border: 1px solid #10b981;">Your prints are ready. Collect them from the nearest outlet.</div>` 
+                : '';
+
             const div = document.createElement('div');
             div.className = 'order-item';
             div.innerHTML = `
-                <div class="order-info">
-                    <h3 style="margin-bottom: 0.25rem;">Order #${shortId}</h3>
-                    <div class="order-meta">
-                        ${order.copies} ${order.copies > 1 ? 'Copies' : 'Copy'} • ${colorOption} • ${sidedOption}
+                <div class="order-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
+                    <div class="order-info">
+                        <h3 style="margin-bottom: 0.25rem; font-size: 1.1rem; color: var(--text-primary);">Order #${shortId}</h3>
+                        <div class="order-meta" style="font-size: 0.85rem; color: var(--text-secondary);">
+                            ${order.copies} ${order.copies > 1 ? 'Copies' : 'Copy'} • ${colorOption} • ${sidedOption}
+                        </div>
+                        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">
+                            ${timeStr}
+                        </div>
                     </div>
-                    <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">
-                        ${timeStr}
+                    <div class="status-badge ${statusObj.cssClass}">${statusObj.label}</div>
+                </div>
+
+                <div class="order-progress" style="display: flex; justify-content: space-between; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); position: relative;">
+                    <!-- Connecting line -->
+                    <div style="position: absolute; top: 1.55rem; left: 15%; right: 15%; height: 2px; background: var(--border-color); z-index: 1;"></div>
+                    <div style="position: absolute; top: 1.55rem; left: 15%; width: ${statusObj.step === 1 ? '0%' : statusObj.step === 2 ? '35%' : '70%'}; height: 2px; background: var(--accent-color); z-index: 2; transition: width 0.3s ease;"></div>
+                    
+                    <div class="progress-step" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; flex: 1; z-index: 3;">
+                        <div class="step-circle" style="width: 20px; height: 20px; border-radius: 50%; background: ${statusObj.step >= 1 ? 'var(--accent-color)' : '#fff'}; border: 2px solid ${statusObj.step >= 1 ? 'var(--accent-color)' : 'var(--border-color)'}; transition: all 0.3s;"></div>
+                        <span style="font-size: 0.7rem; color: ${statusObj.step >= 1 ? 'var(--text-primary)' : 'var(--text-secondary)'}; font-weight: ${statusObj.step >= 1 ? '600' : '500'};">Order Received</span>
+                    </div>
+                    
+                    <div class="progress-step" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; flex: 1; z-index: 3;">
+                        <div class="step-circle" style="width: 20px; height: 20px; border-radius: 50%; background: ${statusObj.step >= 2 ? 'var(--accent-color)' : '#fff'}; border: 2px solid ${statusObj.step >= 2 ? 'var(--accent-color)' : 'var(--border-color)'}; transition: all 0.3s;"></div>
+                        <span style="font-size: 0.7rem; color: ${statusObj.step >= 2 ? 'var(--text-primary)' : 'var(--text-secondary)'}; font-weight: ${statusObj.step >= 2 ? '600' : '500'};">Printing</span>
+                    </div>
+                    
+                    <div class="progress-step" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; flex: 1; z-index: 3;">
+                        <div class="step-circle" style="width: 20px; height: 20px; border-radius: 50%; background: ${statusObj.step >= 3 ? 'var(--accent-color)' : '#fff'}; border: 2px solid ${statusObj.step >= 3 ? 'var(--accent-color)' : 'var(--border-color)'}; transition: all 0.3s;"></div>
+                        <span style="font-size: 0.7rem; color: ${statusObj.step >= 3 ? 'var(--text-primary)' : 'var(--text-secondary)'}; font-weight: ${statusObj.step >= 3 ? '600' : '500'};">Ready for Pickup</span>
                     </div>
                 </div>
-                <div class="status-badge ${statusObj.cssClass}">${statusObj.label}</div>
+
+                ${readyMsg}
             `;
             return div;
         }
